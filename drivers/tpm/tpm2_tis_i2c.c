@@ -32,8 +32,6 @@ static const char * const chip_name[] = {
 #define	TPM_DATA_FIFO		0x24
 #define	TPM_DID_VID		0x48
 
-#ifndef CONFIG_SPL_BUILD
-
 /*
  * tpm2_tis_i2c_read() - read from TPM register
  * @addr: register address to read from
@@ -481,6 +479,7 @@ static int tpm2_tis_i2c_init(struct udevice *dev)
 	}
 
 	if (chip->chip_type == NPCT75X) {
+		vendor = be32_to_cpu(vendor);
 		expected_did_vid = TPM2_TIS_I2C_DID_VID_NPCT75X;
 	}
 
@@ -548,12 +547,19 @@ static int tpm2_tis_i2c_probe(struct udevice *dev)
 	struct tpm_chip *chip = dev_get_priv(dev);
 
 	chip->chip_type = dev_get_driver_data(dev);
+	chip->locality = 0;
+	chip->timeout_a = TIS_SHORT_TIMEOUT_MS;
+	chip->timeout_b = TIS_LONG_TIMEOUT_MS;
+	chip->timeout_c = TIS_SHORT_TIMEOUT_MS;
+	chip->timeout_d = TIS_SHORT_TIMEOUT_MS;
 
-	/* TODO: These need to be checked and tuned */
 	uc_priv->duration_ms[TPM_SHORT] = TIS_SHORT_TIMEOUT_MS;
 	uc_priv->duration_ms[TPM_MEDIUM] = TIS_LONG_TIMEOUT_MS;
 	uc_priv->duration_ms[TPM_LONG] = TIS_LONG_TIMEOUT_MS;
 	uc_priv->retry_time_ms = TPM_TIMEOUT_MS;
+	uc_priv->pcr_count = 24;
+	uc_priv->pcr_select_min = 3;
+	uc_priv->version = TPM_V2;
 
 	return 0;
 }
@@ -580,5 +586,3 @@ U_BOOT_DRIVER(tpm2_tis_i2c) = {
 	.probe	= tpm2_tis_i2c_probe,
 	.priv_auto_alloc_size = sizeof(struct tpm_chip),
 };
-
-#endif /* ifndef CONFIG_SPL_BUILD */
